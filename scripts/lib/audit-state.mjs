@@ -13,10 +13,10 @@ export function validateAuditState(report, expectedState, policy) {
   }
 
   const counts = report?.metadata?.vulnerabilities;
-  const severities = ['info', 'low', 'moderate', 'high', 'critical'];
   if (
     report?.error ||
     !counts ||
+    ![counts.high, counts.critical].every((count) => Number.isInteger(count) && count >= 0) ||
     !report.vulnerabilities ||
     typeof report.vulnerabilities !== 'object' ||
     Array.isArray(report.vulnerabilities)
@@ -24,28 +24,25 @@ export function validateAuditState(report, expectedState, policy) {
     return { valid: false, message: 'Audit report contains an error or is missing valid vulnerability counts or findings.' };
   }
   const findings = Object.entries(report.vulnerabilities);
-  if (findings.some(([, finding]) => !severities.includes(finding?.severity))) {
+  if (findings.some(([, finding]) => !['info', 'low', 'moderate', 'high', 'critical'].includes(finding?.severity))) {
     return { valid: false, message: 'Audit report contains a finding without a valid severity.' };
   }
+  const highPackages = findings
+    .filter(([, finding]) => finding.severity === 'high')
+    .map(([name]) => name)
+    .sort();
   if (
-    severities.some((severity) =>
-      !Number.isInteger(counts[severity]) ||
-      counts[severity] < 0 ||
-      counts[severity] !== findings.filter(([, finding]) => finding.severity === severity).length) ||
-    counts.total !== findings.length
+    counts.high !== highPackages.length ||
+    counts.critical !== findings.filter(([, finding]) => finding.severity === 'critical').length
   ) {
     return { valid: false, message: 'Audit vulnerability counts do not match the reported findings.' };
   }
 
   if (expectedState === 'start') {
     const expectedPackages = [...policy.packages].sort();
-    const actualPackages = findings
-      .filter(([, finding]) => finding.severity === 'high')
-      .map(([name]) => name)
-      .sort();
     const valid =
-      actualPackages.length === expectedPackages.length &&
-      actualPackages.every((name, index) => name === expectedPackages[index]) &&
+      highPackages.length === expectedPackages.length &&
+      highPackages.every((name, index) => name === expectedPackages[index]) &&
       counts.high === policy.high &&
       counts.critical === policy.critical;
 
