@@ -13,6 +13,10 @@
   <p>Leave a question or comment about this session — it renders below, right in your browser.</p>
   <form id="feedback-form">
     <div class="field">
+      <label for="feedback-topic">Topic</label>
+      <input id="feedback-topic" name="topic" type="text" placeholder="Code review, security, deployment…" required />
+    </div>
+    <div class="field">
       <label for="feedback-name">Name</label>
       <input id="feedback-name" name="name" type="text" placeholder="Ada" />
     </div>
@@ -86,8 +90,17 @@
       .map((s) => {
         const html = renderMarkdown(s.message || '');
         const who = s.name || 'Anonymous';
+        const topic = s.topic
+          ? `${String(s.topic).replace(/[&<>"']/g, (character) => ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[character])} · `
+          : '';
         const when = new Date(s.submittedAt).toLocaleString();
-        return `<div class="feedback-item"><div class="meta">${who} · ${when}</div>${html}</div>`;
+        return `<div class="feedback-item"><div class="meta">${topic}${who} · ${when}</div>${html}</div>`;
       })
       .join('');
   }
@@ -95,9 +108,10 @@
   form?.addEventListener('submit', (event) => {
     event.preventDefault();
     const data = new FormData(form);
+    const topic = data.get('topic');
     const name = data.get('name');
     const message = data.get('message');
-    saveSubmission(name, message);
+    saveSubmission(name, message, topic);
     form.reset();
     render();
   });
