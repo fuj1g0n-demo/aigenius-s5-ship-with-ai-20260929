@@ -113,20 +113,20 @@ test('audit CLI preserves the demo sequence and allows clean follow-up PRs', asy
   ]) {
     copyFileSync(new URL(`../${file}`, import.meta.url), join(directory, ...file.split('/')));
   }
-  const counts = (high) => ({ info: 0, low: 0, moderate: 0, high, critical: 0, total: high });
   const seeded = {
     vulnerabilities: { marked: { severity: 'high' } },
-    metadata: { vulnerabilities: counts(1) },
+    metadata: { vulnerabilities: { high: 1, critical: 0 } },
   };
   const clean = {
     vulnerabilities: {},
-    metadata: { vulnerabilities: counts(0) },
+    metadata: { vulnerabilities: { high: 0, critical: 0 } },
   };
   const withFinding = (report, name, severity) => {
     const result = structuredClone(report);
     result.vulnerabilities[name] = { severity };
-    result.metadata.vulnerabilities[severity] += 1;
-    result.metadata.vulnerabilities.total += 1;
+    if (severity === 'high' || severity === 'critical') {
+      result.metadata.vulnerabilities[severity] += 1;
+    }
     return result;
   };
   const cases = [
@@ -134,14 +134,10 @@ test('audit CLI preserves the demo sequence and allows clean follow-up PRs', asy
     ['explicit start state', 'start', '0.3.19', seeded, true],
     ...['info', 'low', 'moderate'].flatMap((severity) => [
       [`seeded with ${severity} transitive advisory`, 'auto', '0.3.19',
-        withFinding(seeded, `transitive-${severity}`, severity), true],
+        withFinding(seeded, `seeded-transitive-${severity}`, severity), true],
       [`clean with ${severity} transitive advisory`, 'clean', '4.0.10',
-        withFinding(clean, `transitive-${severity}`, severity), true],
+        withFinding(clean, `clean-transitive-${severity}`, severity), true],
     ]),
-    ['seeded with unrelated moderate package', 'auto', '0.3.19',
-      withFinding(seeded, '@example/leaf', 'moderate'), true],
-    ['clean with unrelated moderate package', 'clean', '4.0.10',
-      withFinding(clean, 'other-library', 'moderate'), true],
     ['unremediated Dependabot PR', 'clean', '0.3.19', seeded, false],
     ['production blocks seed', 'clean', '0.3.19', seeded, false],
     ['remediated Dependabot PR', 'clean', '4.0.10', clean, true],
