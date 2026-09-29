@@ -11,8 +11,8 @@ GitHub Actions security gate → Dependabot remediation → GitHub Pages
 ```
 
 Its security theme is **OWASP Top 10:2025 A03 — Software Supply Chain Failures**. The recordable
-start state intentionally contains an outdated dependency, an inactive workflow with unsafe
-defaults, and an optional fake secret-scanning fixture. The core demonstration does not require
+start state intentionally contains an outdated dependency, a workflow with unsafe defaults, and
+an optional fake secret-scanning fixture. The core demonstration does not require
 Generic patterns, because that setting is not available to every presenter. Presenters still show
 where Secret Protection and Push protection are configured.
 
@@ -57,7 +57,8 @@ scripts/
   preflight-demo.mjs             recording-readiness checks
   check-audit-state.mjs          deterministic dependency policy
 .github/
-  demo/deploy.yml                inactive review fixture
+  demo/deploy.yml                source for the active Pages deployment workflow
+  workflows/deploy.yml           GitHub Pages deployment
   workflows/initialize-demo.yml  one-time "before" deployment
   workflows/pull-request-checks.yml
   workflows/dependency-policy.yml

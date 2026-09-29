@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Episode 3: The Trust Gap">
+  <h1>Episode 3: The trust gap</h1>
+  <p>
+    AI can generate code faster, but speed alone does not make software safe to ship. The central
+    lesson of this episode is to close the trust gap with a reliable path from review to production.
+  </p>
+  <div class="card">
+    <strong>Keep the guardrails in the delivery path.</strong> Review AI-assisted changes, check
+    dependencies and secrets, and make CI/CD enforce the checks before deployment.
+  </div>
+  <h2>Put it into practice</h2>
+  <ol>
+    <li>Review each pull request for correctness and unintended changes.</li>
+    <li>Keep dependencies and credentials visible to security checks.</li>
+    <li>Require passing build and security gates before deploying.</li>
+  </ol>
+  <p>
+    These steps address software supply-chain risk across the whole lifecycle. See the
+    <a href="../secure-supply-chain/">secure supply chain lesson</a> and
+    <a href="../pipeline/">delivery pipeline</a> for the details.
+  </p>
+</Layout>
