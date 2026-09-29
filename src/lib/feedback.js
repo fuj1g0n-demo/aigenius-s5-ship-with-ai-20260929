@@ -1,10 +1,24 @@
 // Feedback widget storage + submit handling.
-//
-// NOTE (seeded code-quality issue, brief §5.5): this handler does not validate
-// its inputs — no empty-check, no length cap. Copilot Code Review should flag
-// this as a robustness issue on the live demo. Do not fix ahead of time.
 
 const STORAGE_KEY = 'ship-with-ai-feedback';
+
+export const FEEDBACK_LIMITS = Object.freeze({ name: 100, topic: 100, message: 5000 });
+
+export class FeedbackValidationError extends Error {}
+
+function validateText(value, label, maxLength, required) {
+  if (typeof value !== 'string') {
+    throw new FeedbackValidationError(`${label} must be text.`);
+  }
+  if (value.length > maxLength) {
+    throw new FeedbackValidationError(`${label} must be ${maxLength} characters or fewer.`);
+  }
+  const text = value.trim();
+  if (required && !text) {
+    throw new FeedbackValidationError(`${label} is required.`);
+  }
+  return text;
+}
 
 export function loadSubmissions() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -17,8 +31,14 @@ export function loadSubmissions() {
 }
 
 export function saveSubmission(name, message, topic) {
+  const submission = {
+    name: validateText(name, 'Name', FEEDBACK_LIMITS.name, false),
+    message: validateText(message, 'Message', FEEDBACK_LIMITS.message, true),
+    topic: validateText(topic, 'Topic', FEEDBACK_LIMITS.topic, true),
+    submittedAt: new Date().toISOString(),
+  };
   const submissions = loadSubmissions();
-  submissions.push({ name, message, topic, submittedAt: new Date().toISOString() });
+  submissions.push(submission);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(submissions));
   return submissions;
 }
