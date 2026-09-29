@@ -45,6 +45,15 @@ npm run dev
 The start state contains deliberate training findings. Local execution is suitable for learning;
 do not deploy it as a production application. `npm run build` creates the static site in `dist/`.
 
+Feedback requires a nonblank topic (up to 100 characters) and message (up to 5,000 characters).
+Names are optional and limited to 100 characters. These limits apply before trimming; stored
+values are trimmed. Rejected submissions and storage failures display an error without clearing
+the form. Run `node --test scripts/feedback.test.mjs` to check this behavior.
+
+The active deployment workflow uses commit-pinned Actions and job-scoped permissions. The
+original `.github/demo/deploy.yml` seed and the separate dependency-remediation step remain
+unchanged; production deployment still requires a clean dependency audit.
+
 ## Repository structure
 
 ```text
