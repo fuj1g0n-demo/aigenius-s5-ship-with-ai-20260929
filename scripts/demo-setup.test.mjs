@@ -124,12 +124,20 @@ test('audit CLI preserves the demo sequence and allows clean follow-up PRs', asy
   const unexpected = structuredClone(seeded);
   unexpected.vulnerabilities.other = { severity: 'high' };
   unexpected.metadata.vulnerabilities.high = 2;
+  const seededWithModerate = structuredClone(seeded);
+  seededWithModerate.vulnerabilities.undici = { severity: 'moderate' };
+  seededWithModerate.metadata.vulnerabilities.moderate = 1;
+  const cleanWithModerate = structuredClone(clean);
+  cleanWithModerate.vulnerabilities.undici = { severity: 'moderate' };
+  cleanWithModerate.metadata.vulnerabilities.moderate = 1;
   const cases = [
     ['seeded feature PR', 'auto', '0.3.19', seeded, true],
+    ['seeded feature PR with moderate transitive finding', 'auto', '0.3.19', seededWithModerate, true],
     ['explicit start state', 'start', '0.3.19', seeded, true],
     ['unremediated Dependabot PR', 'clean', '0.3.19', seeded, false],
     ['production blocks seed', 'clean', '0.3.19', seeded, false],
     ['remediated Dependabot PR', 'clean', '4.0.10', clean, true],
+    ['remediated Dependabot PR with moderate finding', 'clean', '4.0.10', cleanWithModerate, true],
     ['follow-up feature PR', 'auto', '4.0.10', clean, true],
     ['unexpected start finding', 'auto', '0.3.19', unexpected, false],
     ['unsafe version with clean report', 'auto', '1.0.0', clean, false],

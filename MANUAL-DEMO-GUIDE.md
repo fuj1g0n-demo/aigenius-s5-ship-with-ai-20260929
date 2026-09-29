@@ -70,6 +70,9 @@ Do not run `npm audit fix`, update dependencies, or copy `.github/demo/deploy.ym
 state is intentionally vulnerable.
 
 **Expected result:** installation completes and reports the deliberate `marked` finding.
+Additional moderate findings in transitive dependencies may appear; the demo gate enforces the
+expected high-severity `marked` finding in the start state and blocks high or critical findings
+after remediation.
 
 ## 4. Configure the disposable repository
 
