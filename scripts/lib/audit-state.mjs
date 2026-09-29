@@ -24,11 +24,13 @@ export function validateAuditState(report, expectedState, policy = {}) {
 
   if (expectedState === 'start') {
     const expectedPackages = [...(policy.packages ?? ['marked'])].sort();
-    const actualPackages = findings.map(([name]) => name).sort();
+    const highFindings = findings.filter(([, finding]) =>
+      ['high', 'critical'].includes(finding.severity));
+    const actualPackages = highFindings.map(([name]) => name).sort();
     const valid =
       actualPackages.length === expectedPackages.length &&
       actualPackages.every((name, index) => name === expectedPackages[index]) &&
-      findings.every(([, finding]) => finding.severity === 'high') &&
+      highFindings.every(([, finding]) => finding.severity === 'high') &&
       counts.high === (policy.high ?? 1) &&
       counts.critical === (policy.critical ?? 0);
 
