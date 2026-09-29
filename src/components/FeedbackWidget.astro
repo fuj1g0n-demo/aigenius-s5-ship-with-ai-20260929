@@ -2,11 +2,9 @@
 // Feedback / questions widget — the one interactive, code-bearing feature
 // on the site. Client-side only (works on static GitHub Pages, no backend).
 //
-// Carries two intentionally seeded issues for the live demo — do not fix:
-//   - §5.1: renders submissions with `marked` 0.3.19, which has known
-//     regular-expression denial-of-service vulnerabilities. Flagged by Dependabot.
-//   - §5.5: the submit handler (src/lib/feedback.js) has no input validation.
-//     Flagged by Copilot Code Review.
+// The intentionally outdated `marked` renderer remains for the separate
+// Dependabot remediation step.
+import { FEEDBACK_LIMITS } from '../lib/feedback.js';
 ---
 <section class="card" id="feedback-widget">
   <h2>Questions &amp; feedback</h2>
@@ -14,17 +12,18 @@
   <form id="feedback-form">
     <div class="field">
       <label for="feedback-topic">Topic</label>
-      <input id="feedback-topic" name="topic" type="text" placeholder="Code review, security, deployment…" required />
+      <input id="feedback-topic" name="topic" type="text" placeholder="Code review, security, deployment…" maxlength={FEEDBACK_LIMITS.topic} required />
     </div>
     <div class="field">
       <label for="feedback-name">Name</label>
-      <input id="feedback-name" name="name" type="text" placeholder="Ada" />
+      <input id="feedback-name" name="name" type="text" placeholder="Ada" maxlength={FEEDBACK_LIMITS.name} />
     </div>
     <div class="field">
       <label for="feedback-message">Message (Markdown supported)</label>
-      <textarea id="feedback-message" name="message" rows="3" placeholder="What did you think?"></textarea>
+      <textarea id="feedback-message" name="message" rows="3" placeholder="What did you think?" maxlength={FEEDBACK_LIMITS.message} required></textarea>
     </div>
     <button type="submit">Submit</button>
+    <p id="feedback-error" role="alert" hidden></p>
   </form>
   <div id="feedback-list" aria-live="polite"></div>
 </section>
@@ -69,7 +68,7 @@
   // The intentionally outdated renderer is genuinely used here. Rendering
   // untrusted Markdown without sanitising its HTML is a separate optional beat.
   import * as markedModule from 'marked';
-  import { loadSubmissions, saveSubmission } from '../lib/feedback.js';
+  import { FeedbackValidationError, loadSubmissions, saveSubmission } from '../lib/feedback.js';
   import { FEEDBACK_ANALYTICS_TOKEN } from '../lib/analytics-config.js';
 
   const renderMarkdown =
@@ -81,6 +80,17 @@
 
   const form = document.getElementById('feedback-form');
   const list = document.getElementById('feedback-list');
+  const errorMessage = document.getElementById('feedback-error');
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[character]);
+  }
 
   function render() {
     const submissions = loadSubmissions();
@@ -89,15 +99,9 @@
       .reverse()
       .map((s) => {
         const html = renderMarkdown(s.message || '');
-        const who = s.name || 'Anonymous';
+        const who = s.name ? escapeHtml(s.name) : 'Anonymous';
         const topic = s.topic
-          ? `${String(s.topic).replace(/[&<>"']/g, (character) => ({
-              '&': '&amp;',
-              '<': '&lt;',
-              '>': '&gt;',
-              '"': '&quot;',
-              "'": '&#39;',
-            })[character])} · `
+          ? `${escapeHtml(s.topic)} · `
           : '';
         const when = new Date(s.submittedAt).toLocaleString();
         return `<div class="feedback-item"><div class="meta">${topic}${who} · ${when}</div>${html}</div>`;
@@ -111,7 +115,17 @@
     const topic = data.get('topic');
     const name = data.get('name');
     const message = data.get('message');
-    saveSubmission(name, message, topic);
+    errorMessage.hidden = true;
+    errorMessage.textContent = '';
+    try {
+      saveSubmission(name, message, topic);
+    } catch (error) {
+      errorMessage.textContent = error instanceof FeedbackValidationError
+        ? error.message
+        : 'Unable to save feedback. Browser storage may be full or unavailable. Please try again.';
+      errorMessage.hidden = false;
+      return;
+    }
     form.reset();
     render();
   });
