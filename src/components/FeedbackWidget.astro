@@ -82,6 +82,16 @@ import { FEEDBACK_LIMITS } from '../lib/feedback.js';
   const list = document.getElementById('feedback-list');
   const errorMessage = document.getElementById('feedback-error');
 
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[character]);
+  }
+
   function render() {
     const submissions = loadSubmissions();
     list.innerHTML = submissions
@@ -89,15 +99,9 @@ import { FEEDBACK_LIMITS } from '../lib/feedback.js';
       .reverse()
       .map((s) => {
         const html = renderMarkdown(s.message || '');
-        const who = s.name || 'Anonymous';
+        const who = s.name ? escapeHtml(s.name) : 'Anonymous';
         const topic = s.topic
-          ? `${String(s.topic).replace(/[&<>"']/g, (character) => ({
-              '&': '&amp;',
-              '<': '&lt;',
-              '>': '&gt;',
-              '"': '&quot;',
-              "'": '&#39;',
-            })[character])} · `
+          ? `${escapeHtml(s.topic)} · `
           : '';
         const when = new Date(s.submittedAt).toLocaleString();
         return `<div class="feedback-item"><div class="meta">${topic}${who} · ${when}</div>${html}</div>`;

@@ -106,7 +106,11 @@ test('storage failures propagate without replacing existing submissions', () => 
 // Exercise the actual client script with minimal DOM/storage doubles, without a browser dependency.
 function createWidget() {
   const source = readFileSync(new URL('../src/components/FeedbackWidget.astro', import.meta.url), 'utf8');
-  const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^  import .*;\r?$/gm, '');
+  const openingTag = '<script>';
+  const start = source.indexOf(openingTag);
+  const end = source.indexOf('</script>', start + openingTag.length);
+  assert.ok(start !== -1 && end !== -1, 'widget client script must exist');
+  const script = source.slice(start + openingTag.length, end).replace(/^  import .*;\r?$/gm, '');
   let submit;
   let resets = 0;
   const values = { name: 'Ada', message: 'Question', topic: 'Deployment' };
@@ -153,6 +157,24 @@ test('the submit handler shows validation errors and clears them on a successful
   assert.match(widget.list.innerHTML, /Review &lt;script&gt;/);
   assert.match(widget.list.innerHTML, /Question/);
   assert.equal(loadSubmissions()[0].topic, 'Review <script>');
+});
+
+test('submitted and previously stored names are escaped when rendered', () => {
+  const legacyName = '<IMG SRC=x ONERROR=alert(1)>';
+  stored.set('ship-with-ai-feedback', JSON.stringify([{
+    name: legacyName, message: 'Previous feedback', submittedAt: '2026-01-01T00:00:00.000Z',
+  }]));
+  const widget = createWidget();
+  assert.ok(widget.list.innerHTML.includes('&lt;IMG SRC=x ONERROR=alert(1)&gt;'));
+  assert.ok(!widget.list.innerHTML.includes(legacyName));
+
+  const submittedName = '<img src=x onerror=alert(2)>';
+  widget.values.name = submittedName;
+  widget.submit();
+  assert.equal(widget.error.hidden, true);
+  assert.ok(widget.list.innerHTML.includes('&lt;img src=x onerror=alert(2)&gt;'));
+  assert.ok(!widget.list.innerHTML.includes(submittedName));
+  assert.equal(loadSubmissions().at(-1).name, submittedName);
 });
 
 for (const operation of ['getItem', 'setItem']) {
